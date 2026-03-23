@@ -624,19 +624,24 @@ body {
   padding: 1rem 2rem;
   border-radius: 8px;
   font-family: 'Orbitron', sans-serif;
-  font-size: 1rem;
-  z-index: 1000;
+  font-size: 0.9rem;
+  z-index: 9999;
   animation: fadeIn 0.3s ease;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+  max-width: 90%;
+  text-align: center;
 }
 
 .mensagem.sucesso {
   background: var(--neon-green);
   color: var(--dark-bg);
+  box-shadow: 0 0 30px var(--neon-green);
 }
 
 .mensagem.erro {
   background: var(--neon-red);
   color: #fff;
+  box-shadow: 0 0 30px var(--neon-red);
 }
 
 @keyframes fadeIn {
