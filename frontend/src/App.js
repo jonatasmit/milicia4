@@ -60,11 +60,16 @@ const createIcon = (type) => {
 };
 
 // Map click handler component
-const MapClickHandler = ({ activeTool, onMapClick, setMousePosition }) => {
+const MapClickHandler = ({ activeTool, onMapClick, onMapDoubleClick, setMousePosition }) => {
   useMapEvents({
     click: (e) => {
       if (activeTool) {
         onMapClick(e.latlng);
+      }
+    },
+    dblclick: (e) => {
+      if (activeTool && activeTool.startsWith("route-")) {
+        onMapDoubleClick();
       }
     },
     mousemove: (e) => {
@@ -112,6 +117,7 @@ const CommandSidebar = ({
   onDeleteRoute,
   onDeleteZone,
   onClearAll,
+  onFinishRoute,
   mousePosition,
   routePoints,
 }) => {
@@ -243,8 +249,18 @@ const CommandSidebar = ({
           </button>
         </div>
         {routePoints.length > 0 && (
-          <div className="mt-2 text-xs font-mono text-gray-500">
-            Pontos: {routePoints.length} (duplo-clique para finalizar)
+          <div className="mt-3">
+            <div className="text-xs font-mono text-gray-500 mb-2">
+              Pontos: {routePoints.length}
+            </div>
+            <button
+              className="btn-brutalist full-width"
+              onClick={onFinishRoute}
+              data-testid="finish-route-button"
+              style={{ width: "100%", background: "#00FF41", color: "#000", borderColor: "#00FF41" }}
+            >
+              Finalizar Rota
+            </button>
           </div>
         )}
       </div>
@@ -530,6 +546,7 @@ function App() {
         onDeleteRoute={handleDeleteRoute}
         onDeleteZone={handleDeleteZone}
         onClearAll={handleClearAll}
+        onFinishRoute={handleMapDoubleClick}
         mousePosition={mousePosition}
         routePoints={routePoints}
       />
@@ -557,6 +574,7 @@ function App() {
           <MapClickHandler
             activeTool={activeTool}
             onMapClick={handleMapClick}
+            onMapDoubleClick={handleMapDoubleClick}
             setMousePosition={setMousePosition}
           />
 
