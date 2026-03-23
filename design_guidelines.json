@@ -1,0 +1,100 @@
+{
+  "project_name": "Milicia Digital - Estratégia Tática",
+  "theme": "Tactical Dark Map with Swiss Brutalist Command Panel",
+  "description": "A military strategy simulator for the 'General' to protect the green zone between Cidade de Deus and Gardênia Azul. Features a dark, immersive radar-style map contrasted with a highly legible, brutalist white command panel.",
+  "typography": {
+    "primary_font": "IBM Plex Sans",
+    "heading_font": "JetBrains Mono",
+    "weights": {
+      "light": "300",
+      "regular": "400",
+      "bold": "700",
+      "black": "900"
+    },
+    "rules": [
+      "CRITICAL: Do not use Inter, Roboto, or Open Sans for headings. They are banned.",
+      "Use JetBrains Mono for all coordinates, operational stats, and command panel headers to enforce the military terminal feel.",
+      "Use tight tracking (tracking-tight) for large headers.",
+      "Overlines/Labels must be UPPERCASE, tiny (text-xs), and widely spaced (tracking-[0.2em])."
+    ]
+  },
+  "colors": {
+    "map": {
+      "background": "#050A08",
+      "radar_grid": "rgba(0, 255, 65, 0.1)",
+      "radar_sweep": "rgba(0, 255, 65, 0.2)"
+    },
+    "command_panel": {
+      "background": "#FFFFFF",
+      "text": "#0A0A0A",
+      "border": "#1A1A1A",
+      "muted_text": "#4A4A4A"
+    },
+    "tactical_elements": {
+      "hq": "#FFCC00",
+      "ally": "#007AFF",
+      "enemy": "#FF3B30",
+      "radar_green": "#00FF41",
+      "zone_danger": "rgba(255, 59, 48, 0.25)",
+      "zone_danger_border": "#FF3B30",
+      "zone_safe": "rgba(0, 122, 255, 0.25)",
+      "zone_safe_border": "#007AFF"
+    }
+  },
+  "layout_and_grids": {
+    "structure": "Full-bleed absolute map (Leaflet) occupying 100% of the viewport width and height. The Command Panel (Sidebar) is a fixed overlay on the left.",
+    "command_panel": "Fixed to left, w-80 or w-96, h-screen, bg-white, text-black, border-r-2 border-black, flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.5)]. The white background is a strict requirement for contrast.",
+    "tools_grid": "Inside the panel, use a high-density bento grid for the drawing and placement tools: grid-cols-2 gap-4. Buttons should span 1 column, major actions span full width (col-span-full).",
+    "spacing_philosophy": "Inside the white panel, use generous padding (p-6) for distinct sections. Do not cram elements. Separate sections with hard 1px black borders (border-b border-black)."
+  },
+  "visual_enhancers": {
+    "radar_sweep": "Add a CSS-based conic gradient animation overlay on the map container (pointer-events-none) to simulate a continuous radar sweep.",
+    "pin_pulses": "Use CSS animations (animate-ping) to create a pulse ring behind active strategic pins (HQ, enemies).",
+    "surface_strategy": "The white command panel uses the 'Swiss Brutalist' strategy: strict grid, hard 1px/2px borders, stark monochrome palette with pure color reserved only for tactical active states (red/blue/green)."
+  },
+  "assets": {
+    "logo": {
+      "url": "https://customer-assets.emergentagent.com/job_6fa49454-f216-41c4-ad6c-e1d8bfe3a11e/artifacts/1wasgcls_72bc90c6-d374-4fd6-bbae-b07bd26cd19b.jpeg",
+      "description": "Suplementos Mais Baratos logo. Place prominently at the top of the command panel.",
+      "category": "branding"
+    },
+    "mascot": {
+      "url": "https://customer-assets.emergentagent.com/job_6fa49454-f216-41c4-ad6c-e1d8bfe3a11e/artifacts/nfwqyisr_ae0cd023-034e-4d51-b06f-2e3454bac50f.jpeg",
+      "description": "Muscular cartoon man. Use in the header or user profile section of the command panel as the 'General' avatar.",
+      "category": "avatar"
+    }
+  },
+  "components": {
+    "buttons": "Brutalist styling. Sharp corners (rounded-none). High contrast. Default: border border-black bg-white text-black. Hover: bg-black text-white transition-colors duration-200. Active tactical tools should take on their respective colors (e.g., active enemy pin tool -> bg-red-600 text-white).",
+    "map": "Use 'react-leaflet'. Set the TileLayer URL to a dark theme provider like CartoDB Dark Matter: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'. Center coordinates: [-22.945, -43.365].",
+    "icons": "Use 'lucide-react'. MapPin for HQ, ShieldAlert for Allies, Skull for Enemies, Route for paths, CircleDashed for zones.",
+    "data_testid_rules": "All interactive elements MUST have a data-testid attribute in kebab-case (e.g., data-testid='add-hq-button', data-testid='draw-route-tool')."
+  },
+  "motion_and_interactions": {
+    "hover_states": "All buttons must invert colors on hover or show a distinct border thickening.",
+    "tool_activation": "When a map tool (like 'Draw Route' or 'Place Pin') is active, the button in the command panel must remain visually depressed or highlighted to clearly indicate state.",
+    "map_markers": "Markers should drop in with a slight bounce animation."
+  },
+  "accessibility_and_contrast": {
+    "contrast_ratio": "Ensure minimum 4.5:1 ratio for text. The white sidebar against black text guarantees high readability. On the dark map, all drawn lines/pins must use highly saturated colors (Pure Red, Bright Blue, Bright Yellow) to pop against the dark gray/black background.",
+    "transparent_backgrounds": "CRITICAL: Do not use complete transparent backgrounds for overlays or headers over the map if they contain text. Use a solid color or heavy backdrop blur with an explicit background color."
+  },
+  "instructions_to_main_agent": [
+    "Install and configure react-leaflet and leaflet for the map visualization. Ensure Leaflet CSS is imported.",
+    "Implement a custom state manager to track pins (lat, lng, type), routes (array of lat/lng pairs), and zones (lat, lng, radius, type).",
+    "The UI is split: `<MapBackground />` (absolute, z-0) and `<CommandSidebar />` (absolute or flex layout, left-0, z-10, bg-white).",
+    "The HQ initial pin should be manually settable or pre-set at Motel Amarelinho (Av Vice Presidente José de Alencar n 1400 - approx. near the given coordinates).",
+    "Use standard HTML/Tailwind for the unique layouts of the command center rather than over-relying on pre-built Shadcn Cards, to maintain the brutalist command panel aesthetic.",
+    "Do not use generic emoji icons. Use `lucide-react` strictly."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not converge toward generic, 'on distribution' AI outputs. Make the interface distinctive.",
+    "Do not center-align the app container globally. Maintain structural layout reading flow.",
+    "Every interaction needs micro-animations - hover states, transitions. Static = dead.",
+    "Exclude transforms from universal transitions (no `transition: all`).",
+    "Never use AI assistant Emoji characters (e.g., 🤖🧠💭💡) for icons.",
+    "Components MUST use named exports; Pages MUST use default exports.",
+    "Use 'sonner' for toasts if notifications are needed.",
+    "All interactive elements MUST include a `data-testid` attribute based on their role."
+  ]
+}
