@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import "@/App.css";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import "./App.css";
 
 // Assets
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_6fa49454-f216-41c4-ad6c-e1d8bfe3a11e/artifacts/1wasgcls_72bc90c6-d374-4fd6-bbae-b07bd26cd19b.jpeg";
@@ -14,33 +11,6 @@ const WHATSAPP = "5521972232170";
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP}`;
 const LOJA_URL = "https://www.suplementosmaisbaratos.com.br";
 const CUPOM = "SMB10OFF";
-
-// Session ID
-const getSessionId = () => {
-  let sid = sessionStorage.getItem('milicia_session');
-  if (!sid) {
-    sid = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now();
-    sessionStorage.setItem('milicia_session', sid);
-  }
-  return sid;
-};
-
-// Track Event
-const trackEvent = async (eventType, extraData = {}) => {
-  try {
-    await fetch(`${API}/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_type: eventType,
-        session_id: getSessionId(),
-        user_agent: navigator.userAgent,
-        referrer: document.referrer || null,
-        ...extraData
-      })
-    });
-  } catch (e) { console.log('Track error:', e); }
-};
 
 // Produtos
 const PRODUTOS = {
@@ -72,10 +42,8 @@ const LEVELS = [
 ];
 
 const getLevel = (xp) => {
-  let total = 0;
   for (let l of LEVELS) {
     if (xp <= l.xpMax) return l;
-    total = l.xpMax;
   }
   return LEVELS[LEVELS.length - 1];
 };
@@ -91,7 +59,7 @@ const EQUIPS = {
   nootropico: { nome: "Nootrópico", icon: "💊" }
 };
 
-// Missões simplificadas
+// Missões
 const MISSOES = [
   {
     id: 1, titulo: "PRESENTE GREGO", local: "Cidade de Deus", zona: "verde",
@@ -143,8 +111,8 @@ const useAudio = () => {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    audio1.current = new Audio('/music1.mp3');
-    audio2.current = new Audio('/music2.mp3');
+    audio1.current = new Audio(process.env.PUBLIC_URL + '/music1.mp3');
+    audio2.current = new Audio(process.env.PUBLIC_URL + '/music2.mp3');
     audio1.current.loop = false;
     audio2.current.loop = true;
     audio1.current.addEventListener('ended', () => audio2.current?.play().catch(() => {}));
@@ -172,7 +140,7 @@ const useAudio = () => {
 };
 
 // WhatsApp Button
-const WhatsAppBtn = ({ creditos, onClick }) => (
+const WhatsAppBtn = ({ creditos }) => (
   <a
     href={`${WHATSAPP_URL}?text=${encodeURIComponent(creditos > 0 
       ? `Oi! Tenho R$${creditos} de desconto do Milícia Digital! 🎮💪` 
@@ -180,8 +148,6 @@ const WhatsAppBtn = ({ creditos, onClick }) => (
     target="_blank"
     rel="noopener noreferrer"
     className="whatsapp-float"
-    onClick={onClick}
-    data-testid="whatsapp-btn"
   >
     <span className="wa-icon">💬</span>
     {creditos > 0 && <span className="wa-badge">R${creditos}</span>}
@@ -209,65 +175,57 @@ const XPBar = ({ xp }) => {
 };
 
 // Cupom Modal
-const CupomModal = ({ onClose }) => {
-  useEffect(() => { trackEvent('cupom_view'); }, []);
-  
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content cupom-modal" onClick={e => e.stopPropagation()}>
-        <h2 className="titulo-glow">🎉 PARABÉNS!</h2>
-        <p>Você desbloqueou o cupom máximo!</p>
-        <div className="cupom-box">
-          <span className="cupom-code">{CUPOM}</span>
-          <p>R$10 OFF na sua compra!</p>
-        </div>
-        <a href={LOJA_URL} target="_blank" rel="noopener noreferrer" className="btn-loja glow-btn">
-          🛒 IR PARA A LOJA
-        </a>
-        <button className="btn-fechar" onClick={onClose}>Continuar Jogando</button>
+const CupomModal = ({ onClose }) => (
+  <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-content cupom-modal" onClick={e => e.stopPropagation()}>
+      <h2 className="titulo-glow">🎉 PARABÉNS!</h2>
+      <p>Você desbloqueou o cupom máximo!</p>
+      <div className="cupom-box">
+        <span className="cupom-code">{CUPOM}</span>
+        <p>R$10 OFF na sua compra!</p>
       </div>
+      <a href={LOJA_URL} target="_blank" rel="noopener noreferrer" className="btn-loja glow-btn">
+        🛒 IR PARA A LOJA
+      </a>
+      <button className="btn-fechar" onClick={onClose}>Continuar Jogando</button>
     </div>
-  );
-};
+  </div>
+);
 
 // Tela Inicial
-const TelaInicial = ({ onPlay, xp, creditos }) => {
-  useEffect(() => { trackEvent('page_view', { xp, creditos }); }, []);
-  
-  return (
-    <div className="tela-inicial">
-      <img src={LOGO_URL} alt="Logo" className="logo-pulse" />
-      <h1 className="titulo-glow animate-glow">MILÍCIA DIGITAL</h1>
-      <p className="sub">O Jogo do Maromba Hacker</p>
-      
-      <div className="hero-card animate-float">
-        <img src={MASCOT_URL} alt="Maromba" className="hero-img" />
-        <div>
-          <span className="tag-yellow">PROTAGONISTA</span>
-          <h2>O MAROMBA</h2>
-          <p>📍 Motel Amarelinho</p>
-        </div>
-      </div>
-
-      <XPBar xp={xp} />
-
-      <div className="promo animate-pulse-border">
-        <h3>🎁 GANHE R$1 POR FASE!</h3>
-        <p>Máximo R$10 • Use na loja</p>
-        <p className="credito">Seu crédito: <b>R${creditos},00</b></p>
-      </div>
-
-      <button className="btn-play glow-btn animate-bounce" onClick={onPlay} data-testid="btn-jogar">
-        <span className="play-icon">▶</span> JOGAR GRÁTIS
-      </button>
-
-      <div className="produtos-preview">
-        <p>💉 Testosterona • Deca • Trembolona</p>
-        <p>💊 Oxandrolona • Stanozolol • Dianabol</p>
+const TelaInicial = ({ onPlay, xp, creditos }) => (
+  <div className="tela-inicial">
+    <img src={LOGO_URL} alt="Logo" className="logo-pulse" />
+    <h1 className="titulo-glow animate-glow">MILÍCIA DIGITAL</h1>
+    <p className="sub">O Jogo do Maromba Hacker</p>
+    
+    <div className="hero-card animate-float">
+      <img src={MASCOT_URL} alt="Maromba" className="hero-img" />
+      <div>
+        <span className="tag-yellow">PROTAGONISTA</span>
+        <h2>O MAROMBA</h2>
+        <p>📍 Motel Amarelinho</p>
       </div>
     </div>
-  );
-};
+
+    <XPBar xp={xp} />
+
+    <div className="promo animate-pulse-border">
+      <h3>🎁 GANHE R$1 POR FASE!</h3>
+      <p>Máximo R$10 • Use na loja</p>
+      <p className="credito">Seu crédito: <b>R${creditos},00</b></p>
+    </div>
+
+    <button className="btn-play glow-btn animate-bounce" onClick={onPlay}>
+      <span className="play-icon">▶</span> JOGAR GRÁTIS
+    </button>
+
+    <div className="produtos-preview">
+      <p>💉 Testosterona • Deca • Trembolona</p>
+      <p>💊 Oxandrolona • Stanozolol • Dianabol</p>
+    </div>
+  </div>
+);
 
 // Tela Missões
 const TelaMissoes = ({ onSelect, completas }) => (
@@ -304,10 +262,6 @@ const TelaJogo = ({ missao, onVoltar, onConcluir, addXP, creditos }) => {
   const [msg, setMsg] = useState(null);
   const [fim, setFim] = useState(false);
 
-  useEffect(() => {
-    trackEvent('mission_start', { mission_id: missao.id });
-  }, [missao.id]);
-
   const completar = () => {
     const p = missao.passos[passo];
     if (p.equip && equip !== p.equip) {
@@ -318,7 +272,6 @@ const TelaJogo = ({ missao, onVoltar, onConcluir, addXP, creditos }) => {
 
     setFeitos([...feitos, passo]);
     addXP(XP_PASSO);
-    trackEvent('step_complete', { mission_id: missao.id, step: passo + 1 });
     setMsg({ tipo: 'ok', txt: `+${XP_PASSO} XP!` });
 
     setTimeout(() => {
@@ -328,7 +281,6 @@ const TelaJogo = ({ missao, onVoltar, onConcluir, addXP, creditos }) => {
         setEquip(null);
       } else {
         addXP(XP_MISSAO);
-        trackEvent('mission_complete', { mission_id: missao.id, creditos: creditos + 1 });
         setFim(true);
       }
     }, 800);
@@ -360,18 +312,13 @@ const TelaJogo = ({ missao, onVoltar, onConcluir, addXP, creditos }) => {
             target="_blank"
             rel="noopener noreferrer"
             className="btn-wpp-cta"
-            onClick={() => trackEvent('whatsapp_click', { mission_id: missao.id, from: 'completion' })}
           >
             💬 USAR DESCONTO AGORA
           </a>
 
           <div className="fim-btns">
             <button className="btn-sec" onClick={onVoltar}>← Missões</button>
-            <button 
-              className="btn-play glow-btn" 
-              onClick={() => onConcluir(missao.id)}
-              data-testid="btn-proxima"
-            >
+            <button className="btn-play glow-btn" onClick={() => onConcluir(missao.id)}>
               Próxima →
             </button>
           </div>
@@ -423,7 +370,6 @@ const TelaJogo = ({ missao, onVoltar, onConcluir, addXP, creditos }) => {
       <button 
         className={`btn-acao glow-btn ${!atual.equip || equip === atual.equip ? 'ready' : ''}`}
         onClick={completar}
-        data-testid={`passo-${passo + 1}`}
       >
         {atual.acao}
       </button>
@@ -444,14 +390,12 @@ function App() {
   
   const audio = useAudio();
 
-  // Salvar no localStorage
   useEffect(() => {
     localStorage.setItem('md_xp', xp.toString());
     localStorage.setItem('md_cred', creditos.toString());
     localStorage.setItem('md_done', JSON.stringify(completas));
   }, [xp, creditos, completas]);
 
-  // Verificar cupom máximo
   useEffect(() => {
     if (creditos >= 10 && !localStorage.getItem('md_cupom_shown')) {
       setShowCupom(true);
@@ -461,10 +405,7 @@ function App() {
 
   const handleFirst = () => { if (!audio.started) audio.start(); };
 
-  const handlePlay = () => {
-    trackEvent('click_play', { xp, creditos });
-    setTela('missoes');
-  };
+  const handlePlay = () => setTela('missoes');
 
   const handleSelect = (m) => {
     setMissao(m);
@@ -472,18 +413,15 @@ function App() {
   };
 
   const handleConcluir = (id) => {
-    // Adicionar crédito
     if (!completas.includes(id)) {
       setCompletas([...completas, id]);
       setCreditos(prev => Math.min(prev + 1, 10));
     }
     
-    // Ir para próxima missão
     const idx = MISSOES.findIndex(m => m.id === id);
     if (idx < MISSOES.length - 1) {
       setMissao(MISSOES[idx + 1]);
     } else {
-      // Voltou ao início, ir para primeira missão não completa ou missões
       const proxima = MISSOES.find(m => !completas.includes(m.id) && m.id !== id);
       if (proxima) {
         setMissao(proxima);
@@ -494,10 +432,6 @@ function App() {
   };
 
   const addXP = (n) => setXP(prev => prev + n);
-
-  const handleWppClick = () => {
-    trackEvent('whatsapp_click', { from: 'float', xp, creditos });
-  };
 
   return (
     <div className="app" onClick={handleFirst}>
@@ -524,7 +458,7 @@ function App() {
         )}
       </div>
 
-      <WhatsAppBtn creditos={creditos} onClick={handleWppClick} />
+      <WhatsAppBtn creditos={creditos} />
       
       {showCupom && <CupomModal onClose={() => setShowCupom(false)} />}
     </div>
