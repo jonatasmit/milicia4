@@ -1,21 +1,30 @@
 import requests
 import sys
 import json
+import base64
 from datetime import datetime
 
-class MilitarySimulatorAPITester:
+class MiliciaDigitalAPITester:
     def __init__(self, base_url="https://general-command-ops.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
-        self.created_pins = []
-        self.created_routes = []
-        self.created_zones = []
+        self.admin_user = "admin"
+        self.admin_pass = "0972044108A!bc"
+        self.session_id = f"test_session_{datetime.now().strftime('%H%M%S')}"
 
-    def run_test(self, name, method, endpoint, expected_status, data=None):
+    def get_auth_headers(self):
+        """Get Basic Auth headers for admin endpoints"""
+        credentials = base64.b64encode(f"{self.admin_user}:{self.admin_pass}".encode()).decode()
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': f'Basic {credentials}'
+        }
+
+    def run_test(self, name, method, endpoint, expected_status, data=None, use_auth=False):
         """Run a single API test"""
         url = f"{self.base_url}/{endpoint}" if endpoint else self.base_url
-        headers = {'Content-Type': 'application/json'}
+        headers = self.get_auth_headers() if use_auth else {'Content-Type': 'application/json'}
 
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
@@ -25,8 +34,6 @@ class MilitarySimulatorAPITester:
                 response = requests.get(url, headers=headers, timeout=10)
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=headers, timeout=10)
-            elif method == 'PUT':
-                response = requests.put(url, json=data, headers=headers, timeout=10)
             elif method == 'DELETE':
                 response = requests.delete(url, headers=headers, timeout=10)
 
@@ -54,302 +61,225 @@ class MilitarySimulatorAPITester:
             print(f"❌ Failed - Error: {str(e)}")
             return False, {}
 
-    def test_operational_status(self):
-        """Test API operational status"""
+    def test_api_health(self):
+        """Test API health check"""
         success, response = self.run_test(
-            "API Operational Status",
+            "API Health Check",
             "GET",
             "",
             200
         )
-        return success and response.get('status') == 'operational'
+        return success and response.get('status') == 'online'
 
-    def test_map_state_empty(self):
-        """Test map state endpoint returns arrays"""
-        success, response = self.run_test(
-            "Map State (Empty)",
-            "GET",
-            "map-state",
-            200
-        )
-        if success:
-            has_pins = 'pins' in response and isinstance(response['pins'], list)
-            has_routes = 'routes' in response and isinstance(response['routes'], list)
-            has_zones = 'zones' in response and isinstance(response['zones'], list)
-            print(f"   Pins: {len(response.get('pins', []))}, Routes: {len(response.get('routes', []))}, Zones: {len(response.get('zones', []))}")
-            return has_pins and has_routes and has_zones
-        return False
-
-    def test_create_hq_pin(self):
-        """Test creating HQ pin"""
-        pin_data = {
-            "lat": -22.9435,
-            "lng": -43.3580,
-            "pin_type": "hq",
-            "label": "Quartel General"
+    def test_track_page_view(self):
+        """Test tracking page view event"""
+        event_data = {
+            "event_type": "page_view",
+            "session_id": self.session_id,
+            "user_agent": "Test Browser",
+            "referrer": "https://test.com",
+            "xp": 0,
+            "creditos": 0
         }
         success, response = self.run_test(
-            "Create HQ Pin",
+            "Track Page View Event",
             "POST",
-            "pins",
+            "events",
             200,
-            data=pin_data
+            data=event_data
         )
-        if success and 'id' in response:
-            self.created_pins.append(response['id'])
-            print(f"   Created pin ID: {response['id']}")
-            return True
-        return False
+        return success and response.get('status') == 'tracked'
 
-    def test_create_ally_pin(self):
-        """Test creating Ally pin"""
-        pin_data = {
-            "lat": -22.9440,
-            "lng": -43.3590,
-            "pin_type": "ally"
+    def test_track_play_click(self):
+        """Test tracking play button click"""
+        event_data = {
+            "event_type": "click_play",
+            "session_id": self.session_id,
+            "xp": 0,
+            "creditos": 0
         }
         success, response = self.run_test(
-            "Create Ally Pin",
+            "Track Play Click Event",
             "POST",
-            "pins",
+            "events",
             200,
-            data=pin_data
+            data=event_data
         )
-        if success and 'id' in response:
-            self.created_pins.append(response['id'])
-            print(f"   Created pin ID: {response['id']}")
-            return True
-        return False
+        return success and response.get('status') == 'tracked'
 
-    def test_create_enemy_pin(self):
-        """Test creating Enemy pin"""
-        pin_data = {
-            "lat": -22.9450,
-            "lng": -43.3570,
-            "pin_type": "enemy"
+    def test_track_mission_start(self):
+        """Test tracking mission start"""
+        event_data = {
+            "event_type": "mission_start",
+            "session_id": self.session_id,
+            "mission_id": 1
         }
         success, response = self.run_test(
-            "Create Enemy Pin",
+            "Track Mission Start Event",
             "POST",
-            "pins",
+            "events",
             200,
-            data=pin_data
+            data=event_data
         )
-        if success and 'id' in response:
-            self.created_pins.append(response['id'])
-            print(f"   Created pin ID: {response['id']}")
-            return True
-        return False
+        return success and response.get('status') == 'tracked'
 
-    def test_get_pins(self):
-        """Test getting all pins"""
+    def test_track_step_complete(self):
+        """Test tracking step completion"""
+        event_data = {
+            "event_type": "step_complete",
+            "session_id": self.session_id,
+            "mission_id": 1,
+            "extra_data": {"step": 1}
+        }
         success, response = self.run_test(
-            "Get All Pins",
-            "GET",
-            "pins",
-            200
+            "Track Step Complete Event",
+            "POST",
+            "events",
+            200,
+            data=event_data
         )
-        if success:
-            print(f"   Found {len(response)} pins")
-            return len(response) >= len(self.created_pins)
-        return False
+        return success and response.get('status') == 'tracked'
 
-    def test_update_pin(self):
-        """Test updating pin position (drag functionality)"""
-        if not self.created_pins:
-            print("❌ No pins to update")
+    def test_track_mission_complete(self):
+        """Test tracking mission completion"""
+        event_data = {
+            "event_type": "mission_complete",
+            "session_id": self.session_id,
+            "mission_id": 1,
+            "creditos": 1
+        }
+        success, response = self.run_test(
+            "Track Mission Complete Event",
+            "POST",
+            "events",
+            200,
+            data=event_data
+        )
+        return success and response.get('status') == 'tracked'
+
+    def test_track_whatsapp_click(self):
+        """Test tracking WhatsApp click"""
+        event_data = {
+            "event_type": "whatsapp_click",
+            "session_id": self.session_id,
+            "extra_data": {"from": "float", "xp": 125, "creditos": 1}
+        }
+        success, response = self.run_test(
+            "Track WhatsApp Click Event",
+            "POST",
+            "events",
+            200,
+            data=event_data
+        )
+        return success and response.get('status') == 'tracked'
+
+    def test_admin_auth_invalid(self):
+        """Test admin authentication with invalid credentials"""
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + base64.b64encode(b"wrong:credentials").decode()
+        }
+        
+        self.tests_run += 1
+        print(f"\n🔍 Testing Admin Auth (Invalid Credentials)...")
+        
+        try:
+            response = requests.get(f"{self.base_url}/admin/analytics", headers=headers, timeout=10)
+            success = response.status_code == 401
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code} (Correctly rejected)")
+                return True
+            else:
+                print(f"❌ Failed - Expected 401, got {response.status_code}")
+                return False
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
             return False
-            
-        pin_id = self.created_pins[0]
-        update_data = {
-            "lat": -22.9445,
-            "lng": -43.3585
-        }
-        success, response = self.run_test(
-            "Update Pin Position",
-            "PUT",
-            f"pins/{pin_id}",
-            200,
-            data=update_data
-        )
-        return success
 
-    def test_create_attack_route(self):
-        """Test creating attack route"""
-        route_data = {
-            "points": [
-                {"lat": -22.9435, "lng": -43.3580},
-                {"lat": -22.9440, "lng": -43.3590},
-                {"lat": -22.9450, "lng": -43.3570}
-            ],
-            "route_type": "attack"
-        }
+    def test_admin_analytics(self):
+        """Test admin analytics endpoint"""
         success, response = self.run_test(
-            "Create Attack Route",
-            "POST",
-            "routes",
-            200,
-            data=route_data
-        )
-        if success and 'id' in response:
-            self.created_routes.append(response['id'])
-            print(f"   Created route ID: {response['id']}")
-            return True
-        return False
-
-    def test_create_defense_route(self):
-        """Test creating defense route"""
-        route_data = {
-            "points": [
-                {"lat": -22.9430, "lng": -43.3575},
-                {"lat": -22.9435, "lng": -43.3585}
-            ],
-            "route_type": "defense"
-        }
-        success, response = self.run_test(
-            "Create Defense Route",
-            "POST",
-            "routes",
-            200,
-            data=route_data
-        )
-        if success and 'id' in response:
-            self.created_routes.append(response['id'])
-            print(f"   Created route ID: {response['id']}")
-            return True
-        return False
-
-    def test_get_routes(self):
-        """Test getting all routes"""
-        success, response = self.run_test(
-            "Get All Routes",
+            "Admin Analytics",
             "GET",
-            "routes",
-            200
-        )
-        if success:
-            print(f"   Found {len(response)} routes")
-            return len(response) >= len(self.created_routes)
-        return False
-
-    def test_create_danger_zone(self):
-        """Test creating danger zone"""
-        zone_data = {
-            "lat": -22.9445,
-            "lng": -43.3575,
-            "radius": 200,
-            "zone_type": "danger"
-        }
-        success, response = self.run_test(
-            "Create Danger Zone",
-            "POST",
-            "zones",
+            "admin/analytics",
             200,
-            data=zone_data
+            use_auth=True
         )
-        if success and 'id' in response:
-            self.created_zones.append(response['id'])
-            print(f"   Created zone ID: {response['id']}")
-            return True
+        if success:
+            required_fields = ['total_visits', 'unique_sessions', 'play_clicks', 'missions_started', 
+                             'missions_completed', 'whatsapp_clicks', 'conversion_rate', 'avg_xp']
+            has_all_fields = all(field in response for field in required_fields)
+            print(f"   Analytics data: visits={response.get('total_visits')}, conversions={response.get('whatsapp_clicks')}")
+            return has_all_fields
         return False
 
-    def test_create_protection_zone(self):
-        """Test creating protection zone"""
-        zone_data = {
-            "lat": -22.9440,
-            "lng": -43.3580,
-            "radius": 150,
-            "zone_type": "protection"
-        }
+    def test_admin_events(self):
+        """Test admin events endpoint"""
         success, response = self.run_test(
-            "Create Protection Zone",
-            "POST",
-            "zones",
+            "Admin Events List",
+            "GET",
+            "admin/events?limit=10",
             200,
-            data=zone_data
+            use_auth=True
         )
-        if success and 'id' in response:
-            self.created_zones.append(response['id'])
-            print(f"   Created zone ID: {response['id']}")
-            return True
+        if success:
+            print(f"   Found {len(response)} events")
+            return isinstance(response, list)
         return False
 
-    def test_get_zones(self):
-        """Test getting all zones"""
+    def test_admin_funnel(self):
+        """Test admin funnel endpoint"""
         success, response = self.run_test(
-            "Get All Zones",
+            "Admin Conversion Funnel",
             "GET",
-            "zones",
-            200
+            "admin/funnel",
+            200,
+            use_auth=True
         )
         if success:
-            print(f"   Found {len(response)} zones")
-            return len(response) >= len(self.created_zones)
+            has_funnel = 'funnel' in response and isinstance(response['funnel'], list)
+            if has_funnel:
+                print(f"   Funnel has {len(response['funnel'])} steps")
+            return has_funnel
         return False
 
-    def test_map_state_with_data(self):
-        """Test map state endpoint with created data"""
+    def test_admin_insights(self):
+        """Test admin insights endpoint"""
         success, response = self.run_test(
-            "Map State (With Data)",
+            "Admin AI Insights",
             "GET",
-            "map-state",
-            200
+            "admin/insights",
+            200,
+            use_auth=True
         )
         if success:
-            pins_count = len(response.get('pins', []))
-            routes_count = len(response.get('routes', []))
-            zones_count = len(response.get('zones', []))
-            print(f"   Pins: {pins_count}, Routes: {routes_count}, Zones: {zones_count}")
-            return pins_count > 0 and routes_count > 0 and zones_count > 0
-        return False
-
-    def test_clear_all(self):
-        """Test clearing all map data"""
-        success, response = self.run_test(
-            "Clear All Map Data",
-            "DELETE",
-            "clear-all",
-            200
-        )
-        if success:
-            # Verify data is cleared
-            success_verify, verify_response = self.run_test(
-                "Verify Clear All",
-                "GET",
-                "map-state",
-                200
-            )
-            if success_verify:
-                pins_count = len(verify_response.get('pins', []))
-                routes_count = len(verify_response.get('routes', []))
-                zones_count = len(verify_response.get('zones', []))
-                print(f"   After clear - Pins: {pins_count}, Routes: {routes_count}, Zones: {zones_count}")
-                return pins_count == 0 and routes_count == 0 and zones_count == 0
+            has_insights = 'insights' in response and isinstance(response['insights'], list)
+            if has_insights:
+                print(f"   Generated {len(response['insights'])} insights")
+            return has_insights
         return False
 
 def main():
-    print("🚀 Starting Military Simulator API Tests")
+    print("🚀 Starting Milícia Digital API Tests")
     print("=" * 50)
     
-    tester = MilitarySimulatorAPITester()
+    tester = MiliciaDigitalAPITester()
     
     # Test sequence
     tests = [
-        tester.test_operational_status,
-        tester.test_map_state_empty,
-        tester.test_create_hq_pin,
-        tester.test_create_ally_pin,
-        tester.test_create_enemy_pin,
-        tester.test_get_pins,
-        tester.test_update_pin,
-        tester.test_create_attack_route,
-        tester.test_create_defense_route,
-        tester.test_get_routes,
-        tester.test_create_danger_zone,
-        tester.test_create_protection_zone,
-        tester.test_get_zones,
-        tester.test_map_state_with_data,
-        tester.test_clear_all,
+        tester.test_api_health,
+        tester.test_track_page_view,
+        tester.test_track_play_click,
+        tester.test_track_mission_start,
+        tester.test_track_step_complete,
+        tester.test_track_mission_complete,
+        tester.test_track_whatsapp_click,
+        tester.test_admin_auth_invalid,
+        tester.test_admin_analytics,
+        tester.test_admin_events,
+        tester.test_admin_funnel,
+        tester.test_admin_insights,
     ]
     
     failed_tests = []

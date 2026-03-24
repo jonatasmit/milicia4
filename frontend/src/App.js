@@ -1,211 +1,205 @@
 import { useState, useEffect, useRef } from "react";
 import "@/App.css";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
 // Assets
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_6fa49454-f216-41c4-ad6c-e1d8bfe3a11e/artifacts/1wasgcls_72bc90c6-d374-4fd6-bbae-b07bd26cd19b.jpeg";
 const MASCOT_URL = "https://customer-assets.emergentagent.com/job_6fa49454-f216-41c4-ad6c-e1d8bfe3a11e/artifacts/nfwqyisr_ae0cd023-034e-4d51-b06f-2e3454bac50f.jpeg";
 const MAP_BG = "https://customer-assets.emergentagent.com/job_general-command-ops/artifacts/y7is9dmg_IMG_3432.png";
 
 // WhatsApp
-const WHATSAPP_NUMBER = "5521972232170";
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
+const WHATSAPP = "5521972232170";
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP}`;
+const LOJA_URL = "https://www.suplementosmaisbaratos.com.br";
+const CUPOM = "SMB10OFF";
 
-// Produtos da campanha
+// Session ID
+const getSessionId = () => {
+  let sid = sessionStorage.getItem('milicia_session');
+  if (!sid) {
+    sid = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now();
+    sessionStorage.setItem('milicia_session', sid);
+  }
+  return sid;
+};
+
+// Track Event
+const trackEvent = async (eventType, extraData = {}) => {
+  try {
+    await fetch(`${API}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_type: eventType,
+        session_id: getSessionId(),
+        user_agent: navigator.userAgent,
+        referrer: document.referrer || null,
+        ...extraData
+      })
+    });
+  } catch (e) { console.log('Track error:', e); }
+};
+
+// Produtos
 const PRODUTOS = {
   injetaveis: [
     { nome: "Testosterona Cipionato", preco: "R$ 89,90" },
     { nome: "Testosterona Enantato", preco: "R$ 79,90" },
-    { nome: "Testosterona Propionato", preco: "R$ 69,90" },
     { nome: "Deca-Durabolin", preco: "R$ 129,90" },
-    { nome: "Durateston", preco: "R$ 99,90" },
-    { nome: "Primobolan", preco: "R$ 199,90" },
+    { nome: "Trembolona", preco: "R$ 249,90" },
     { nome: "Boldenona", preco: "R$ 149,90" },
-    { nome: "Trembolona", preco: "R$ 249,90" }
+    { nome: "Primobolan", preco: "R$ 199,90" }
   ],
   orais: [
-    { nome: "Dianabol", preco: "R$ 89,90" },
     { nome: "Oxandrolona", preco: "R$ 159,90" },
     { nome: "Stanozolol", preco: "R$ 99,90" },
-    { nome: "Hemogenin", preco: "R$ 119,90" },
-    { nome: "Halotestin", preco: "R$ 179,90" }
+    { nome: "Dianabol", preco: "R$ 89,90" }
   ]
 };
 
 // XP System
-const XP_POR_PASSO = 25;
-const XP_POR_MISSAO = 100;
+const XP_PASSO = 25;
+const XP_MISSAO = 100;
 const LEVELS = [
-  { nivel: 1, nome: "Noob", xpMin: 0, xpMax: 99 },
-  { nivel: 2, nome: "Script Kiddie", xpMin: 100, xpMax: 249 },
-  { nivel: 3, nome: "Hacker Jr", xpMin: 250, xpMax: 499 },
-  { nivel: 4, nome: "Engenheiro Social", xpMin: 500, xpMax: 799 },
-  { nivel: 5, nome: "Maromba Hacker", xpMin: 800, xpMax: 1199 },
-  { nivel: 6, nome: "Mestre da Zona Verde", xpMin: 1200, xpMax: Infinity }
+  { nivel: 1, nome: "Noob", xpMax: 99 },
+  { nivel: 2, nome: "Script Kiddie", xpMax: 249 },
+  { nivel: 3, nome: "Hacker Jr", xpMax: 499 },
+  { nivel: 4, nome: "Engenheiro Social", xpMax: 799 },
+  { nivel: 5, nome: "Maromba Hacker", xpMax: 1199 },
+  { nivel: 6, nome: "Mestre", xpMax: Infinity }
 ];
 
-// Equipamentos
-const EQUIPAMENTOS = {
-  pendrive: { nome: "Pen Drive", icon: "💾", desc: "Rootkit NetBus" },
-  jammer: { nome: "Jammer", icon: "📡", desc: "Bloqueia sinais" },
-  arduino: { nome: "Arduino", icon: "🔌", desc: "Microcontrolador" },
-  keylogger: { nome: "Keylogger", icon: "⌨️", desc: "Captura teclas" },
-  nip: { nome: "NIP", icon: "🔍", desc: "Intercepta rede" },
-  transmissor: { nome: "Transmissor", icon: "📻", desc: "Hackeia TV" },
-  nootropico: { nome: "Nootrópico", icon: "💊", desc: "Foco mental" }
+const getLevel = (xp) => {
+  let total = 0;
+  for (let l of LEVELS) {
+    if (xp <= l.xpMax) return l;
+    total = l.xpMax;
+  }
+  return LEVELS[LEVELS.length - 1];
 };
 
-// Missões
+// Equipamentos
+const EQUIPS = {
+  pendrive: { nome: "Pen Drive", icon: "💾" },
+  jammer: { nome: "Jammer", icon: "📡" },
+  arduino: { nome: "Arduino", icon: "🔌" },
+  keylogger: { nome: "Keylogger", icon: "⌨️" },
+  nip: { nome: "NIP", icon: "🔍" },
+  transmissor: { nome: "Transmissor", icon: "📻" },
+  nootropico: { nome: "Nootrópico", icon: "💊" }
+};
+
+// Missões simplificadas
 const MISSOES = [
   {
-    id: 1,
-    titulo: "PRESENTE GREGO",
-    historia: "iPhone 6 hackeado com Cydia...",
-    local: "Motel → Cidade de Deus",
+    id: 1, titulo: "PRESENTE GREGO", local: "Cidade de Deus", zona: "verde",
     passos: [
-      { texto: "Jailbreak no iPhone", equipamento: "arduino", acao: "Conectar Arduino" },
-      { texto: "Instalar rootkit", equipamento: "pendrive", acao: "Transferir vírus" },
-      { texto: "Entregar presente", equipamento: null, acao: "🎁 Entregar!" }
-    ],
-    recompensa: "📱 iPhone entregue",
-    zona: "verde"
+      { texto: "Hackear iPhone", equip: "arduino", acao: "🔌 Conectar" },
+      { texto: "Instalar vírus", equip: "pendrive", acao: "💾 Infectar" },
+      { texto: "Entregar", equip: null, acao: "🎁 Presente!" }
+    ]
   },
   {
-    id: 2,
-    titulo: "INTERNET POPULAR",
-    historia: "WiFi comunitário na torre...",
-    local: "Antena da Comunidade",
+    id: 2, titulo: "INTERNET POPULAR", local: "Antena", zona: "verde",
     passos: [
-      { texto: "Subir na antena", equipamento: "jammer", acao: "Instalar Jammer" },
-      { texto: "Conectar repetidor", equipamento: "arduino", acao: "Configurar roteador" },
-      { texto: "Ativar rede", equipamento: "transmissor", acao: "📶 R$20/mês!" }
-    ],
-    recompensa: "🌐 500 casas online",
-    zona: "verde"
+      { texto: "Subir na torre", equip: "jammer", acao: "📡 Instalar" },
+      { texto: "Configurar", equip: "arduino", acao: "🔌 Programar" },
+      { texto: "Ativar WiFi", equip: "transmissor", acao: "📶 Online!" }
+    ]
   },
   {
-    id: 3,
-    titulo: "TV HACKEADA",
-    historia: "Central de TV exposta...",
-    local: "Central de TV",
+    id: 3, titulo: "TV HACKEADA", local: "Central TV", zona: "verde",
     passos: [
-      { texto: "Localizar servidor", equipamento: "nip", acao: "Instalar NIP" },
-      { texto: "Capturar senha", equipamento: "keylogger", acao: "⌨️ Senha obtida" },
-      { texto: "Inserir comerciais", equipamento: "transmissor", acao: "📺 No ar!" }
-    ],
-    recompensa: "📢 Propaganda grátis",
-    zona: "verde"
+      { texto: "Interceptar rede", equip: "nip", acao: "🔍 Sniffar" },
+      { texto: "Capturar senha", equip: "keylogger", acao: "⌨️ Gravar" },
+      { texto: "Transmitir", equip: "transmissor", acao: "📺 No ar!" }
+    ]
   },
   {
-    id: 4,
-    titulo: "CAFÉZINHO ESPECIAL",
-    historia: "Infiltração no DETRAN...",
-    local: "DETRAN - Setor TI",
+    id: 4, titulo: "CAFÉZINHO", local: "DETRAN", zona: "amarela",
     passos: [
-      { texto: "Preparar café", equipamento: "nootropico", acao: "☕ Relaxou geral" },
-      { texto: "Acessar sistema", equipamento: "pendrive", acao: "💾 Baixando..." },
-      { texto: "Sair tranquilo", equipamento: null, acao: "🚪 Missão cumprida!" }
-    ],
-    recompensa: "🗃️ Banco baixado",
-    zona: "amarela"
+      { texto: "Preparar café", equip: "nootropico", acao: "☕ Servir" },
+      { texto: "Acessar sistema", equip: "pendrive", acao: "💾 Baixar" },
+      { texto: "Escapar", equip: null, acao: "🚪 Fugir!" }
+    ]
   },
   {
-    id: 5,
-    titulo: "JUSTIÇA DIGITAL",
-    historia: "Investigação particular...",
-    local: "Residência Alvo",
+    id: 5, titulo: "JUSTIÇA DIGITAL", local: "Casa do Alvo", zona: "vermelha",
     passos: [
-      { texto: "Instalar keylogger", equipamento: "keylogger", acao: "⌨️ Monitorando" },
-      { texto: "Esconder pen drive", equipamento: "pendrive", acao: "📸 Capturando" },
-      { texto: "Coletar provas", equipamento: null, acao: "⚖️ Justiça!" }
-    ],
-    recompensa: "🔒 Criminoso exposto",
-    zona: "vermelha"
+      { texto: "Instalar spy", equip: "keylogger", acao: "⌨️ Espionar" },
+      { texto: "Gravar tela", equip: "pendrive", acao: "📸 Capturar" },
+      { texto: "Expor", equip: null, acao: "⚖️ Justiça!" }
+    ]
   }
 ];
 
-// Audio Manager Hook
-const useAudioManager = () => {
-  const audio1Ref = useRef(null);
-  const audio2Ref = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioStarted, setAudioStarted] = useState(false);
+// Audio Hook
+const useAudio = () => {
+  const audio1 = useRef(null);
+  const audio2 = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    audio1Ref.current = new Audio('/music1.mp3');
-    audio2Ref.current = new Audio('/music2.mp3');
-    
-    audio1Ref.current.loop = false;
-    audio2Ref.current.loop = true;
-    
-    audio1Ref.current.addEventListener('ended', () => {
-      audio2Ref.current.play().catch(() => {});
-    });
-
-    return () => {
-      audio1Ref.current?.pause();
-      audio2Ref.current?.pause();
-    };
+    audio1.current = new Audio('/music1.mp3');
+    audio2.current = new Audio('/music2.mp3');
+    audio1.current.loop = false;
+    audio2.current.loop = true;
+    audio1.current.addEventListener('ended', () => audio2.current?.play().catch(() => {}));
+    return () => { audio1.current?.pause(); audio2.current?.pause(); };
   }, []);
 
-  const startAudio = () => {
-    if (!audioStarted && audio1Ref.current) {
-      audio1Ref.current.play().then(() => {
-        setIsPlaying(true);
-        setAudioStarted(true);
-      }).catch(() => {});
+  const start = () => {
+    if (!started && audio1.current) {
+      audio1.current.play().then(() => { setPlaying(true); setStarted(true); }).catch(() => {});
     }
   };
 
-  const toggleAudio = () => {
-    if (isPlaying) {
-      audio1Ref.current?.pause();
-      audio2Ref.current?.pause();
-      setIsPlaying(false);
+  const toggle = () => {
+    if (playing) {
+      audio1.current?.pause();
+      audio2.current?.pause();
+      setPlaying(false);
     } else {
-      if (audio1Ref.current?.ended || audio1Ref.current?.currentTime === 0) {
-        audio2Ref.current?.play().catch(() => {});
-      } else {
-        audio1Ref.current?.play().catch(() => {});
-      }
-      setIsPlaying(true);
+      (audio1.current?.ended ? audio2.current : audio1.current)?.play().catch(() => {});
+      setPlaying(true);
     }
   };
 
-  return { startAudio, toggleAudio, isPlaying, audioStarted };
+  return { start, toggle, playing, started };
 };
 
 // WhatsApp Button
-const WhatsAppButton = ({ creditos }) => {
-  const msg = creditos > 0 
-    ? `Oi! Completei missões na Milícia Digital e ganhei R$${creditos},00 de desconto! Quero usar na minha compra 💪`
-    : `Oi! Vim do jogo Milícia Digital! Quero saber dos suplementos 💪`;
+const WhatsAppBtn = ({ creditos, onClick }) => (
+  <a
+    href={`${WHATSAPP_URL}?text=${encodeURIComponent(creditos > 0 
+      ? `Oi! Tenho R$${creditos} de desconto do Milícia Digital! 🎮💪` 
+      : `Oi! Vim do jogo Milícia Digital! 💪`)}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="whatsapp-float"
+    onClick={onClick}
+    data-testid="whatsapp-btn"
+  >
+    <span className="wa-icon">💬</span>
+    {creditos > 0 && <span className="wa-badge">R${creditos}</span>}
+  </a>
+);
+
+// XP Bar
+const XPBar = ({ xp }) => {
+  const level = getLevel(xp);
+  const prevMax = LEVELS[level.nivel - 2]?.xpMax || 0;
+  const progress = ((xp - prevMax) / (level.xpMax - prevMax)) * 100;
   
   return (
-    <a
-      href={`${WHATSAPP_URL}?text=${encodeURIComponent(msg)}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="whatsapp-float"
-      data-testid="whatsapp-btn"
-    >
-      <span className="whatsapp-icon">💬</span>
-      {creditos > 0 && <span className="whatsapp-badge">R${creditos}</span>}
-    </a>
-  );
-};
-
-// XP Bar Component
-const XPBar = ({ xp, level }) => {
-  const currentLevel = LEVELS.find(l => xp >= l.xpMin && xp <= l.xpMax) || LEVELS[0];
-  const nextLevel = LEVELS[currentLevel.nivel] || currentLevel;
-  const progress = ((xp - currentLevel.xpMin) / (currentLevel.xpMax - currentLevel.xpMin)) * 100;
-
-  return (
-    <div className="xp-bar-container">
-      <div className="xp-info">
-        <span className="level-badge">Lv.{currentLevel.nivel}</span>
-        <span className="level-name">{currentLevel.nome}</span>
-        <span className="xp-text">{xp} XP</span>
+    <div className="xp-container">
+      <div className="xp-header">
+        <span className="level-badge">Lv.{level.nivel}</span>
+        <span className="level-name">{level.nome}</span>
+        <span className="xp-num">{xp} XP</span>
       </div>
       <div className="xp-bar">
         <div className="xp-fill" style={{ width: `${Math.min(progress, 100)}%` }} />
@@ -214,91 +208,88 @@ const XPBar = ({ xp, level }) => {
   );
 };
 
-// Equip Card
-const EquipCard = ({ equip, selecionado, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`equip-card ${selecionado ? 'selecionado' : ''}`}
-    data-testid={`equip-${equip}`}
-  >
-    <span className="equip-icon">{EQUIPAMENTOS[equip].icon}</span>
-    <span className="equip-nome">{EQUIPAMENTOS[equip].nome}</span>
-  </button>
-);
-
-// Passo Component
-const Passo = ({ passo, numero, completo, atual, onCompletar }) => (
-  <div className={`passo ${completo ? 'completo' : ''} ${atual ? 'atual' : ''}`}>
-    <div className="passo-numero">{completo ? '✓' : numero}</div>
-    <div className="passo-content">
-      <p className="passo-texto">{passo.texto}</p>
-      {atual && (
-        <button className="btn-acao glow-btn" onClick={onCompletar} data-testid={`passo-${numero}`}>
-          {passo.acao}
-        </button>
-      )}
-    </div>
-  </div>
-);
-
-// Tela Inicial
-const TelaInicial = ({ onIniciar, xp, creditos }) => (
-  <div className="tela-inicial" data-testid="tela-inicial">
-    <div className="logo-main-container">
-      <img src={LOGO_URL} alt="Logo" className="logo-main" />
-    </div>
-    
-    <h1 className="titulo-glow">MILÍCIA DIGITAL</h1>
-    <p className="subtitulo">O Jogo do Maromba Hacker</p>
-    
-    <div className="mascot-hero">
-      <img src={MASCOT_URL} alt="Maromba" className="mascot-img" />
-      <div className="mascot-info">
-        <span className="label-glow">PROTAGONISTA</span>
-        <h2>O MAROMBA</h2>
-        <p>📍 Motel Amarelinho</p>
+// Cupom Modal
+const CupomModal = ({ onClose }) => {
+  useEffect(() => { trackEvent('cupom_view'); }, []);
+  
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content cupom-modal" onClick={e => e.stopPropagation()}>
+        <h2 className="titulo-glow">🎉 PARABÉNS!</h2>
+        <p>Você desbloqueou o cupom máximo!</p>
+        <div className="cupom-box">
+          <span className="cupom-code">{CUPOM}</span>
+          <p>R$10 OFF na sua compra!</p>
+        </div>
+        <a href={LOJA_URL} target="_blank" rel="noopener noreferrer" className="btn-loja glow-btn">
+          🛒 IR PARA A LOJA
+        </a>
+        <button className="btn-fechar" onClick={onClose}>Continuar Jogando</button>
       </div>
     </div>
+  );
+};
 
-    <XPBar xp={xp} />
+// Tela Inicial
+const TelaInicial = ({ onPlay, xp, creditos }) => {
+  useEffect(() => { trackEvent('page_view', { xp, creditos }); }, []);
+  
+  return (
+    <div className="tela-inicial">
+      <img src={LOGO_URL} alt="Logo" className="logo-pulse" />
+      <h1 className="titulo-glow animate-glow">MILÍCIA DIGITAL</h1>
+      <p className="sub">O Jogo do Maromba Hacker</p>
+      
+      <div className="hero-card animate-float">
+        <img src={MASCOT_URL} alt="Maromba" className="hero-img" />
+        <div>
+          <span className="tag-yellow">PROTAGONISTA</span>
+          <h2>O MAROMBA</h2>
+          <p>📍 Motel Amarelinho</p>
+        </div>
+      </div>
 
-    <div className="promo-box">
-      <h3>🎁 GANHE R$1 POR FASE!</h3>
-      <p>Complete missões e use o desconto em suplementos</p>
-      <p className="promo-credito">Seu crédito: <strong>R${creditos},00</strong></p>
+      <XPBar xp={xp} />
+
+      <div className="promo animate-pulse-border">
+        <h3>🎁 GANHE R$1 POR FASE!</h3>
+        <p>Máximo R$10 • Use na loja</p>
+        <p className="credito">Seu crédito: <b>R${creditos},00</b></p>
+      </div>
+
+      <button className="btn-play glow-btn animate-bounce" onClick={onPlay} data-testid="btn-jogar">
+        <span className="play-icon">▶</span> JOGAR GRÁTIS
+      </button>
+
+      <div className="produtos-preview">
+        <p>💉 Testosterona • Deca • Trembolona</p>
+        <p>💊 Oxandrolona • Stanozolol • Dianabol</p>
+      </div>
     </div>
-
-    <button className="btn-iniciar glow-btn" onClick={onIniciar} data-testid="btn-iniciar">
-      ▶ JOGAR GRÁTIS
-    </button>
-
-    <p className="disclaimer">
-      💊 Nootrópicos para foco | 💉 Anabolizantes com desconto
-    </p>
-  </div>
-);
+  );
+};
 
 // Tela Missões
-const TelaMissoes = ({ onSelect, missoesCompletas }) => (
-  <div className="tela-missoes" data-testid="tela-missoes">
-    <h2 className="titulo-secao">OPERAÇÕES</h2>
+const TelaMissoes = ({ onSelect, completas }) => (
+  <div className="tela-missoes">
+    <h2 className="titulo-secao">ESCOLHA A OPERAÇÃO</h2>
+    <p className="instrucao">Toque em uma missão para começar</p>
     <div className="missoes-grid">
-      {MISSOES.map((m) => (
+      {MISSOES.map(m => (
         <button
           key={m.id}
-          className={`missao-card zona-${m.zona} ${missoesCompletas.includes(m.id) ? 'completa' : ''}`}
+          className={`missao-card zona-${m.zona} ${completas.includes(m.id) ? 'done' : ''} animate-slide-in`}
           onClick={() => onSelect(m)}
-          data-testid={`missao-${m.id}`}
+          style={{ animationDelay: `${m.id * 0.1}s` }}
         >
-          <div className="missao-header">
-            <span className="missao-id">OP-{m.id.toString().padStart(2, '0')}</span>
-            <span className={`zona-tag ${m.zona}`}>
-              {m.zona === 'verde' ? '🟢' : m.zona === 'amarela' ? '🟡' : '🔴'}
-            </span>
-            {missoesCompletas.includes(m.id) && <span className="check-badge">✓</span>}
+          <div className="missao-top">
+            <span className="op-id">OP-{m.id}</span>
+            <span className={`zona ${m.zona}`}>{m.zona === 'verde' ? '🟢' : m.zona === 'amarela' ? '🟡' : '🔴'}</span>
+            {completas.includes(m.id) && <span className="check">✓</span>}
           </div>
           <h3>{m.titulo}</h3>
-          <p className="missao-local">📍 {m.local}</p>
+          <p>📍 {m.local}</p>
+          <div className="reward-preview">+R$1,00 💰</div>
         </button>
       ))}
     </div>
@@ -306,195 +297,236 @@ const TelaMissoes = ({ onSelect, missoesCompletas }) => (
 );
 
 // Tela Jogo
-const TelaMissao = ({ missao, onVoltar, onConcluir, onXP, creditos }) => {
-  const [passoAtual, setPassoAtual] = useState(0);
-  const [completos, setCompletos] = useState([]);
-  const [equipSel, setEquipSel] = useState(null);
+const TelaJogo = ({ missao, onVoltar, onConcluir, addXP, creditos }) => {
+  const [passo, setPasso] = useState(0);
+  const [feitos, setFeitos] = useState([]);
+  const [equip, setEquip] = useState(null);
   const [msg, setMsg] = useState(null);
-  const [concluida, setConcluida] = useState(false);
+  const [fim, setFim] = useState(false);
+
+  useEffect(() => {
+    trackEvent('mission_start', { mission_id: missao.id });
+  }, [missao.id]);
 
   const completar = () => {
-    const passo = missao.passos[passoAtual];
-    if (passo.equipamento && equipSel !== passo.equipamento) {
-      setMsg({ tipo: 'erro', texto: `Use: ${EQUIPAMENTOS[passo.equipamento].nome}` });
+    const p = missao.passos[passo];
+    if (p.equip && equip !== p.equip) {
+      setMsg({ tipo: 'erro', txt: `Selecione: ${EQUIPS[p.equip].nome}` });
       setTimeout(() => setMsg(null), 1500);
       return;
     }
 
-    setCompletos([...completos, passoAtual]);
-    onXP(XP_POR_PASSO);
-    setMsg({ tipo: 'sucesso', texto: '+25 XP!' });
-    
+    setFeitos([...feitos, passo]);
+    addXP(XP_PASSO);
+    trackEvent('step_complete', { mission_id: missao.id, step: passo + 1 });
+    setMsg({ tipo: 'ok', txt: `+${XP_PASSO} XP!` });
+
     setTimeout(() => {
       setMsg(null);
-      if (passoAtual < missao.passos.length - 1) {
-        setPassoAtual(passoAtual + 1);
-        setEquipSel(null);
+      if (passo < missao.passos.length - 1) {
+        setPasso(passo + 1);
+        setEquip(null);
       } else {
-        onXP(XP_POR_MISSAO);
-        setConcluida(true);
+        addXP(XP_MISSAO);
+        trackEvent('mission_complete', { mission_id: missao.id, creditos: creditos + 1 });
+        setFim(true);
       }
     }, 800);
   };
 
-  if (concluida) {
-    const produto = PRODUTOS.injetaveis[Math.floor(Math.random() * PRODUTOS.injetaveis.length)];
-    const msgWpp = `Completei ${missao.titulo} e ganhei R$${Math.min(creditos + 1, 10)},00! Quero usar no ${produto.nome} 💪`;
+  if (fim) {
+    const prod = [...PRODUTOS.injetaveis, ...PRODUTOS.orais][Math.floor(Math.random() * 9)];
+    const novoCredito = Math.min(creditos + 1, 10);
+    const msgWpp = `Completei ${missao.titulo} e ganhei R$${novoCredito}! Quero ${prod.nome} 💪`;
     
     return (
-      <div className="tela-conclusao" data-testid="tela-conclusao">
-        <div className="conclusao-content">
-          <div className="sucesso-icon">🎯</div>
-          <h2 className="titulo-glow">COMPLETO!</h2>
-          <div className="recompensa-box">
-            <p className="recompensa-xp">+{XP_POR_MISSAO} XP</p>
-            <p className="recompensa-credito">+R$1,00 de crédito!</p>
+      <div className="tela-fim">
+        <div className="fim-content animate-pop">
+          <span className="fim-icon">🎯</span>
+          <h2 className="titulo-glow">MISSÃO COMPLETA!</h2>
+          <div className="reward-box">
+            <p className="xp-gain">+{XP_MISSAO} XP</p>
+            <p className="cred-gain">+R$1,00 de crédito!</p>
           </div>
           
-          <div className="produto-destaque">
-            <h4>💉 APROVEITE SEU DESCONTO:</h4>
-            <p className="produto-nome">{produto.nome}</p>
-            <p className="produto-preco">{produto.preco}</p>
+          <div className="produto-card">
+            <span className="tag-yellow">💉 DESCONTO LIBERADO</span>
+            <p className="prod-nome">{prod.nome}</p>
+            <p className="prod-preco">{prod.preco}</p>
           </div>
 
           <a
             href={`${WHATSAPP_URL}?text=${encodeURIComponent(msgWpp)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-whatsapp-cta glow-btn"
+            className="btn-wpp-cta"
+            onClick={() => trackEvent('whatsapp_click', { mission_id: missao.id, from: 'completion' })}
           >
-            💬 USAR DESCONTO NO WHATSAPP
+            💬 USAR DESCONTO AGORA
           </a>
 
-          <div className="btn-group">
-            <button className="btn-secundario" onClick={onVoltar}>← MISSÕES</button>
-            <button className="btn-iniciar glow-btn" onClick={() => onConcluir(missao.id)}>PRÓXIMA →</button>
+          <div className="fim-btns">
+            <button className="btn-sec" onClick={onVoltar}>← Missões</button>
+            <button 
+              className="btn-play glow-btn" 
+              onClick={() => onConcluir(missao.id)}
+              data-testid="btn-proxima"
+            >
+              Próxima →
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
+  const atual = missao.passos[passo];
+
   return (
-    <div className="tela-missao" data-testid="tela-missao">
-      <div className="missao-header-full">
-        <button className="btn-voltar" onClick={onVoltar}>←</button>
+    <div className="tela-jogo">
+      <div className="jogo-header">
+        <button className="btn-back" onClick={onVoltar}>←</button>
         <h2>{missao.titulo}</h2>
-        <span className={`zona-tag ${missao.zona}`}>
-          {missao.zona === 'verde' ? '🟢' : missao.zona === 'amarela' ? '🟡' : '🔴'}
-        </span>
+        <span className={`zona ${missao.zona}`}>{missao.zona === 'verde' ? '🟢' : missao.zona === 'amarela' ? '🟡' : '🔴'}</span>
       </div>
 
-      <p className="historia">{missao.historia}</p>
-
-      <div className="equips-section">
-        <h3>🛠️ EQUIPAMENTOS</h3>
-        <div className="equips-grid">
-          {Object.keys(EQUIPAMENTOS).map(e => (
-            <EquipCard key={e} equip={e} selecionado={equipSel === e} onClick={() => setEquipSel(e)} />
-          ))}
-        </div>
-      </div>
-
-      <div className="passos-section">
-        <h3>📋 PASSOS</h3>
-        {missao.passos.map((p, i) => (
-          <Passo
-            key={i}
-            passo={p}
-            numero={i + 1}
-            completo={completos.includes(i)}
-            atual={passoAtual === i && !completos.includes(i)}
-            onCompletar={completar}
-          />
+      <div className="progresso">
+        {missao.passos.map((_, i) => (
+          <div key={i} className={`prog-dot ${feitos.includes(i) ? 'done' : i === passo ? 'atual' : ''}`}>
+            {feitos.includes(i) ? '✓' : i + 1}
+          </div>
         ))}
       </div>
 
-      {missao.passos[passoAtual]?.equipamento && !completos.includes(passoAtual) && (
-        <div className="dica-box">
-          💡 Use: <strong>{EQUIPAMENTOS[missao.passos[passoAtual].equipamento].nome}</strong>
-        </div>
-      )}
+      <div className="passo-atual animate-fade">
+        <h3>PASSO {passo + 1}: {atual.texto}</h3>
+        {atual.equip && (
+          <p className="dica-equip">
+            👆 Selecione <b>{EQUIPS[atual.equip].nome}</b> abaixo
+          </p>
+        )}
+      </div>
 
-      {msg && <div className={`mensagem ${msg.tipo}`}>{msg.texto}</div>}
+      <div className="equips">
+        {Object.entries(EQUIPS).map(([k, v]) => (
+          <button
+            key={k}
+            className={`equip ${equip === k ? 'sel' : ''} ${atual.equip === k ? 'hint' : ''}`}
+            onClick={() => setEquip(k)}
+          >
+            <span className="eq-icon">{v.icon}</span>
+            <span className="eq-nome">{v.nome}</span>
+          </button>
+        ))}
+      </div>
+
+      <button 
+        className={`btn-acao glow-btn ${!atual.equip || equip === atual.equip ? 'ready' : ''}`}
+        onClick={completar}
+        data-testid={`passo-${passo + 1}`}
+      >
+        {atual.acao}
+      </button>
+
+      {msg && <div className={`toast ${msg.tipo}`}>{msg.txt}</div>}
     </div>
   );
 };
 
-// App Principal
+// App
 function App() {
   const [tela, setTela] = useState('inicial');
-  const [missaoAtual, setMissaoAtual] = useState(null);
-  const [xp, setXP] = useState(() => parseInt(localStorage.getItem('milicia_xp') || '0'));
-  const [creditos, setCreditos] = useState(() => parseInt(localStorage.getItem('milicia_creditos') || '0'));
-  const [missoesCompletas, setMissoesCompletas] = useState(() => 
-    JSON.parse(localStorage.getItem('milicia_missoes') || '[]')
-  );
+  const [missao, setMissao] = useState(null);
+  const [xp, setXP] = useState(() => parseInt(localStorage.getItem('md_xp') || '0'));
+  const [creditos, setCreditos] = useState(() => parseInt(localStorage.getItem('md_cred') || '0'));
+  const [completas, setCompletas] = useState(() => JSON.parse(localStorage.getItem('md_done') || '[]'));
+  const [showCupom, setShowCupom] = useState(false);
   
-  const { startAudio, toggleAudio, isPlaying, audioStarted } = useAudioManager();
+  const audio = useAudio();
 
+  // Salvar no localStorage
   useEffect(() => {
-    localStorage.setItem('milicia_xp', xp.toString());
-    localStorage.setItem('milicia_creditos', creditos.toString());
-    localStorage.setItem('milicia_missoes', JSON.stringify(missoesCompletas));
-  }, [xp, creditos, missoesCompletas]);
+    localStorage.setItem('md_xp', xp.toString());
+    localStorage.setItem('md_cred', creditos.toString());
+    localStorage.setItem('md_done', JSON.stringify(completas));
+  }, [xp, creditos, completas]);
 
-  const handleFirstInteraction = () => {
-    if (!audioStarted) startAudio();
+  // Verificar cupom máximo
+  useEffect(() => {
+    if (creditos >= 10 && !localStorage.getItem('md_cupom_shown')) {
+      setShowCupom(true);
+      localStorage.setItem('md_cupom_shown', 'true');
+    }
+  }, [creditos]);
+
+  const handleFirst = () => { if (!audio.started) audio.start(); };
+
+  const handlePlay = () => {
+    trackEvent('click_play', { xp, creditos });
+    setTela('missoes');
   };
 
-  const addXP = (amount) => setXP(prev => prev + amount);
-  
-  const completarMissao = (missaoId) => {
-    if (!missoesCompletas.includes(missaoId)) {
-      setMissoesCompletas([...missoesCompletas, missaoId]);
+  const handleSelect = (m) => {
+    setMissao(m);
+    setTela('jogo');
+  };
+
+  const handleConcluir = (id) => {
+    // Adicionar crédito
+    if (!completas.includes(id)) {
+      setCompletas([...completas, id]);
       setCreditos(prev => Math.min(prev + 1, 10));
     }
-    const idx = MISSOES.findIndex(m => m.id === missaoId);
+    
+    // Ir para próxima missão
+    const idx = MISSOES.findIndex(m => m.id === id);
     if (idx < MISSOES.length - 1) {
-      setMissaoAtual(MISSOES[idx + 1]);
+      setMissao(MISSOES[idx + 1]);
     } else {
-      setTela('missoes');
+      // Voltou ao início, ir para primeira missão não completa ou missões
+      const proxima = MISSOES.find(m => !completas.includes(m.id) && m.id !== id);
+      if (proxima) {
+        setMissao(proxima);
+      } else {
+        setTela('missoes');
+      }
     }
+  };
+
+  const addXP = (n) => setXP(prev => prev + n);
+
+  const handleWppClick = () => {
+    trackEvent('whatsapp_click', { from: 'float', xp, creditos });
   };
 
   return (
-    <div className="app-container" onClick={handleFirstInteraction} data-testid="app">
-      <div className="map-bg" style={{ backgroundImage: `url(${MAP_BG})` }} />
+    <div className="app" onClick={handleFirst}>
+      <div className="bg" style={{ backgroundImage: `url(${MAP_BG})` }} />
       <div className="overlay" />
       <div className="scanlines" />
 
-      {/* Audio Toggle */}
-      <button className="audio-toggle" onClick={toggleAudio} data-testid="audio-toggle">
-        {isPlaying ? '🔊' : '🔇'}
+      <button className="audio-btn" onClick={audio.toggle}>
+        {audio.playing ? '🔊' : '🔇'}
       </button>
 
       <div className="content">
-        {tela === 'inicial' && (
-          <TelaInicial 
-            onIniciar={() => setTela('missoes')} 
-            xp={xp}
-            creditos={creditos}
-          />
-        )}
-        {tela === 'missoes' && (
-          <TelaMissoes 
-            onSelect={(m) => { setMissaoAtual(m); setTela('jogo'); }}
-            missoesCompletas={missoesCompletas}
-          />
-        )}
-        {tela === 'jogo' && missaoAtual && (
-          <TelaMissao
-            missao={missaoAtual}
+        {tela === 'inicial' && <TelaInicial onPlay={handlePlay} xp={xp} creditos={creditos} />}
+        {tela === 'missoes' && <TelaMissoes onSelect={handleSelect} completas={completas} />}
+        {tela === 'jogo' && missao && (
+          <TelaJogo
+            key={missao.id}
+            missao={missao}
             onVoltar={() => setTela('missoes')}
-            onConcluir={completarMissao}
-            onXP={addXP}
+            onConcluir={handleConcluir}
+            addXP={addXP}
             creditos={creditos}
           />
         )}
       </div>
 
-      <WhatsAppButton creditos={creditos} />
+      <WhatsAppBtn creditos={creditos} onClick={handleWppClick} />
+      
+      {showCupom && <CupomModal onClose={() => setShowCupom(false)} />}
     </div>
   );
 }
